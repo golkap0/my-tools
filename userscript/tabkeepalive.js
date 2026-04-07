@@ -1,16 +1,43 @@
 // ==UserScript==
-// @name         Vivo Tab Keeper v3.0 - CSP Safe Edition
+// @name         Vivo Tab Keeper v3.4 - Silent
 // @namespace    http://tampermonkey.net/
-// @version      3.0.0
-// @description  Mencegah tab reload VIVO - Tanpa CSP Error - Icon Tengah Kanan
+// @version      3.4.0
+// @description  Mencegah tab reload VIVO - Silent Mode (Hanya error yang ditampilkan)
 // @author       Custom for Vivo Users
 // @match        *://*/*
 // @grant        none
 // @run-at       document-start
+// @noframes
 // ==/UserScript==
 
 (function() {
     'use strict';
+
+    // ============ 🔒 IFRAME DETECTION ============
+
+    function isInsideIFrame() {
+        try {
+            if (window.self !== window.top) return true;
+            if (window.location !== window.parent.location) return true;
+            if (window.frameElement && window.frameElement !== window) return true;
+            if (window.parent && window.parent !== window) {
+                try {
+                    window.parent.document;
+                    return true;
+                } catch(e) {
+                    return true;
+                }
+            }
+        } catch (e) {
+            return true;
+        }
+
+        return false;
+    }
+
+    if (isInsideIFrame()) {
+        return; // Silent exit
+    }
 
     // ============ KONFIGURASI ============
     const CONFIG = {
@@ -18,7 +45,7 @@
         activityInterval: 30000,
         autoStart: true,
         showIndicator: true,
-        useWorker: false, // MATIKAN - menyebabkan CSP error
+        useWorker: false,
         useFetchKeepAlive: true,
         keepAliveUrl: 'https://www.google.com/favicon.ico'
     };
@@ -37,43 +64,34 @@
 
     // ============ INISIALISASI UTAMA ============
     function init() {
-        console.log('[Vivo Tab Keeper v3] Initializing...');
-        
         if (window.__vivoTabKeeperActive) {
-            console.log('[Vivo Tab Keeper v3] Already running');
             return;
         }
-        
+
         window.__vivoTabKeeperActive = true;
 
-        // Buat indikator dengan retry
         if (CONFIG.showIndicator) {
             tryCreateIndicatorWithRetry();
         }
-        
-        // Auto-start
+
         if (CONFIG.autoStart) {
             setTimeout(() => {
                 activateKeepAlive();
             }, 1500);
         }
 
-        // Event listeners
         document.addEventListener('visibilitychange', handleVisibilityChange);
         window.addEventListener('pageshow', handlePageShow);
         window.addEventListener('pagehide', handlePageHide);
 
-        // Observer untuk proteksi indicator
         setupIndicatorObserver();
-
-        console.log('[Vivo Tab Keeper v3] Initialized successfully');
     }
 
-    // ============ INDIKATOR VISUAL (TENGAH KANAN) - CSP SAFE ============
-    
+    // ============ INDIKATOR VISUAL (STATIC) ============
+
     function tryCreateIndicatorWithRetry() {
         const success = tryCreateIndicator();
-        
+
         if (!success && retryCount < MAX_RETRY) {
             retryCount++;
             setTimeout(() => {
@@ -84,22 +102,23 @@
 
     function tryCreateIndicator() {
         try {
+            if (isInsideIFrame()) {
+                return false;
+            }
+
             if (!document.body) {
                 return false;
             }
 
-            // Cek apakah sudah ada
-            if (document.getElementById('vtk-container-v3')) {
-                containerElement = document.getElementById('vtk-container-v3');
-                indicatorElement = document.getElementById('vivo-tab-keeper-indicator-v3');
+            if (document.getElementById('vtk-container-v34')) {
+                containerElement = document.getElementById('vtk-container-v34');
+                indicatorElement = document.getElementById('vivo-tab-keeper-indicator-v34');
                 return true;
             }
 
-            // ============ BUAT CONTAINER ============
             containerElement = document.createElement('div');
-            containerElement.id = 'vtk-container-v3';
-            
-            // Set atribut style satu peratu (CSP safe)
+            containerElement.id = 'vtk-container-v34';
+
             containerElement.setAttribute('style', [
                 'position: fixed !important',
                 'top: 50% !important',
@@ -114,24 +133,22 @@
                 'height: 50px !important'
             ].join('; '));
 
-            // ============ BUAT INDICATOR BUTTON ============
             indicatorElement = document.createElement('div');
-            indicatorElement.id = 'vivo-tab-keeper-indicator-v3';
-            
-            // Set style (CSP safe - tanpa innerHTML)
+            indicatorElement.id = 'vivo-tab-keeper-indicator-v34';
+
             indicatorElement.setAttribute('style', [
                 'width: 100% !important',
                 'height: 100% !important',
                 'border-radius: 50% !important',
-                'background: linear-gradient(135deg, rgba(0, 150, 255, 0.4), rgba(0, 100, 200, 0.6)) !important',
-                'border: 3px solid rgba(255, 255, 255, 0.8) !important',
-                'box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 150, 255, 0.4) !important',
+                'background: linear-gradient(135deg, rgba(0, 150, 255, 0.5), rgba(0, 100, 200, 0.7)) !important',
+                'border: 3px solid rgba(255, 255, 255, 0.9) !important',
+                'box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 150, 255, 0.5) !important',
                 'cursor: pointer !important',
                 'display: flex !important',
                 'align-items: center !important',
                 'justify-content: center !important',
                 'font-size: 24px !important',
-                'transition: all 0.3s ease !important',
+                'transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important',
                 'backdrop-filter: blur(10px) !important',
                 '-webkit-backdrop-filter: blur(10px) !important',
                 'user-select: none !important',
@@ -141,71 +158,54 @@
                 'opacity: 1 !important'
             ].join('; '));
 
-            // Set text content (CSP SAFE - bukan innerHTML!)
             setTextContentSafe(indicatorElement, '💤');
-            
-            // Set title
-            indicatorElement.title = '🛡️ Vivo Tab Keeper v3\nClick to toggle';
 
-            // Event listeners
+            indicatorElement.title = '🛡️ Vivo Tab Keeper\nClick to toggle';
+
             addEventListeners(indicatorElement);
 
-            // Assemble
             containerElement.appendChild(indicatorElement);
-            
-            // Inject ke body
+
             injectToBody(containerElement);
 
-            // Add global styles
             addGlobalStyles();
 
-            console.log('[Vivo Tab Keeper v3] ✅ Indicator created at CENTER-RIGHT');
             return true;
 
         } catch (err) {
-            console.error('[Vivo Tab Keeper v3] Error creating indicator:', err);
+            console.error('[Vivo Tab Keeper] Error creating indicator:', err);
             return false;
         }
     }
 
-    // ============ CSP SAFE TEXT CONTENT ============
     function setTextContentSafe(element, text) {
         try {
-            // Method 1: textContent (paling aman)
             element.textContent = text;
         } catch (e) {
             try {
-                // Method 2: createTextNode
                 const textNode = document.createTextNode(text);
                 element.appendChild(textNode);
             } catch (e2) {
                 try {
-                    // Method 3: innerText
                     element.innerText = text;
-                } catch (e3) {
-                    console.error('[Vivo Tab Keeper v3] All text methods failed');
-                }
+                } catch (e3) {}
             }
         }
     }
 
-    // ============ EVENT LISTENERS ============
     function addEventListeners(element) {
-        // Click handler
         element.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             toggleKeepAlive();
         });
-        
-        // Touch handler (mobile)
+
         element.addEventListener('touchstart', function(e) {
             e.preventDefault();
             e.stopPropagation();
             toggleKeepAlive();
         }, { passive: false });
 
-        // Prevent bubbling
         element.addEventListener('mousedown', function(e) {
             e.stopPropagation();
         });
@@ -234,59 +234,50 @@
             }
         } catch (e) {}
 
-        // Fallback observer
         const observer = new MutationObserver((mutations, obs) => {
             if (document.body) {
                 document.body.appendChild(element);
                 obs.disconnect();
             }
         });
-        
+
         if (document.documentElement) {
             observer.observe(document.documentElement, { childList: true });
         }
     }
 
     function addGlobalStyles() {
-        if (document.getElementById('vtk-global-styles-v3')) return;
+        if (document.getElementById('vtk-global-styles-v34')) return;
 
         try {
             const style = document.createElement('style');
-            style.id = 'vtk-global-styles-v3';
-            
-            // Gunakan textContent untuk CSS (CSP safe)
+            style.id = 'vtk-global-styles-v34';
+
             const cssRules = `
-                #vtk-container-v3 {
+                #vtk-container-v34 {
                     position: fixed !important;
                     top: 50% !important;
                     right: 15px !important;
                     transform: translateY(-50%) !important;
                     z-index: 2147483647 !important;
                 }
-                
-                #vivo-tab-keeper-indicator-v3.active {
-                    background: linear-gradient(135deg, rgba(0, 255, 100, 0.5), rgba(0, 200, 80, 0.7)) !important;
-                    border-color: rgba(255, 255, 255, 1) !important;
-                    box-shadow: 0 4px 20px rgba(0, 255, 100, 0.6), 0 0 30px rgba(0, 255, 100, 0.4) !important;
-                    animation: vtk-pulse-v3 2s infinite !important;
-                }
 
-                @keyframes vtk-pulse-v3 {
-                    0% { transform: scale(1); box-shadow: 0 4px 15px rgba(0, 255, 100, 0.4), 0 0 0 0 rgba(0, 255, 100, 0.7); }
-                    50% { transform: scale(1.08); box-shadow: 0 6px 25px rgba(0, 255, 100, 0.6), 0 0 0 15px rgba(0, 255, 100, 0); }
-                    100% { transform: scale(1); box-shadow: 0 4px 15px rgba(0, 255, 100, 0.4), 0 0 0 0 rgba(0, 255, 100, 0); }
+                #vivo-tab-keeper-indicator-v34.active {
+                    background: linear-gradient(135deg, rgba(0, 255, 100, 0.6), rgba(0, 200, 80, 0.8)) !important;
+                    border-color: rgba(255, 255, 255, 1) !important;
+                    box-shadow: 0 4px 20px rgba(0, 255, 100, 0.7), 0 0 25px rgba(0, 255, 100, 0.5) !important;
                 }
             `;
-            
+
             style.textContent = cssRules;
-            
+
             if (document.head) {
                 document.head.appendChild(style);
             } else {
                 document.documentElement.appendChild(style);
             }
         } catch (err) {
-            console.error('[Vivo Tab Keeper v3] Error adding styles:', err);
+            console.error('[Vivo Tab Keeper] Error adding styles:', err);
         }
     }
 
@@ -294,12 +285,13 @@
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 mutation.removedNodes.forEach((node) => {
-                    if (node.id === 'vtk-container-v3' || node.id === 'vivo-tab-keeper-indicator-v3') {
-                        console.log('[Vivo Tab Keeper v3] ⚠️ Indicator removed! Recreating...');
-                        setTimeout(() => {
-                            tryCreateIndicatorWithRetry();
-                            if (isActive) updateIndicator(true);
-                        }, 500);
+                    if (node.id === 'vtk-container-v34' || node.id === 'vivo-tab-keeper-indicator-v34') {
+                        if (!isInsideIFrame()) {
+                            setTimeout(() => {
+                                tryCreateIndicatorWithRetry();
+                                if (isActive) updateIndicator(true);
+                            }, 500);
+                        }
                     }
                 });
             });
@@ -333,49 +325,40 @@
             tryCreateIndicator();
             if (!indicatorElement) return;
         }
-        
+
         try {
             if (active) {
-                // Add class active
                 indicatorElement.classList.add('active');
-                
-                // Update text (CSP SAFE)
                 setTextContentSafe(indicatorElement, '🛡️');
-                
-                // Update style inline
+
                 indicatorElement.style.cssText += [
-                    'background: linear-gradient(135deg, rgba(0, 255, 100, 0.5), rgba(0, 200, 80, 0.7)) !important',
+                    'background: linear-gradient(135deg, rgba(0, 255, 100, 0.6), rgba(0, 200, 80, 0.8)) !important',
                     'border-color: rgba(255, 255, 255, 1) !important',
-                    'animation: vtk-pulse-v3 2s infinite !important'
+                    'box-shadow: 0 4px 20px rgba(0, 255, 100, 0.7), 0 0 25px rgba(0, 255, 100, 0.5) !important'
                 ].join('; ');
-                
+
             } else {
-                // Remove class active
                 indicatorElement.classList.remove('active');
-                
-                // Update text (CSP SAFE)
                 setTextContentSafe(indicatorElement, '💤');
-                
-                // Reset style
+
                 indicatorElement.style.cssText += [
-                    'background: linear-gradient(135deg, rgba(0, 150, 255, 0.4), rgba(0, 100, 200, 0.6)) !important',
-                    'border-color: rgba(255, 255, 255, 0.8) !important',
-                    'animation: none !important'
+                    'background: linear-gradient(135deg, rgba(0, 150, 255, 0.5), rgba(0, 100, 200, 0.7)) !important',
+                    'border-color: rgba(255, 255, 255, 0.9) !important',
+                    'box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 150, 255, 0.5) !important'
                 ].join('; ');
             }
         } catch (e) {
-            console.error('[Vivo Tab Keeper v3] Error updating indicator:', e);
+            console.error('[Vivo Tab Keeper] Error updating indicator:', e);
         }
     }
 
     // ============ KEEP ALIVE MECHANISMS ============
-    
+
     function activateKeepAlive() {
         if (isActive) return;
-        
-        console.log('[Vivo Tab Keeper v3] 🚀 ACTIVATING...');
+
         isActive = true;
-        
+
         switch(CONFIG.mode) {
             case 'video':
                 startVideoKeepAlive();
@@ -390,33 +373,28 @@
             case 'aggressive':
                 startVideoKeepAlive();
                 startAudioKeepAlive();
-                // SKIP Worker - causes CSP error!
                 startFetchKeepAlive();
                 startActivityIntervals();
-                // Alternative to Worker: Heavy computation interval
                 startComputationInterval();
                 break;
             default:
                 startVideoKeepAlive();
                 startAudioKeepAlive();
         }
-        
+
         updateIndicator(true);
-        console.log('[Vivo Tab Keeper v3] ✅ ACTIVE - Protected!');
     }
 
     function deactivateKeepAlive() {
         if (!isActive) return;
-        
-        console.log('[Vivo Tab Keeper v3] Deactivating...');
+
         isActive = false;
-        
+
         stopMediaElements();
         clearIntervals();
         stopAudioContext();
-        
+
         updateIndicator(false);
-        console.log('[Vivo Tab Keeper v3] Deactivated');
     }
 
     function toggleKeepAlive() {
@@ -434,43 +412,41 @@
             canvas.width = 320;
             canvas.height = 240;
             canvas.style.display = 'none';
-            canvas.id = 'vtk-canvas-v3';
+            canvas.id = 'vtk-canvas-v34';
             document.body.appendChild(canvas);
-            
+
             const ctx = canvas.getContext('2d');
             let frameCount = 0;
-            
+
             function drawFrame() {
                 if (!isActive || !canvas.parentNode) return;
-                
+
                 ctx.fillStyle = 'rgb(' + (frameCount % 256) + ',' + ((frameCount * 2) % 256) + ',' + ((frameCount * 3) % 256) + ')';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 frameCount++;
                 requestAnimationFrame(drawFrame);
             }
-            
+
             const stream = canvas.captureStream(10);
-            
+
             mediaElement = document.createElement('video');
-            mediaElement.id = 'vtk-video-v3';
+            mediaElement.id = 'vtk-video-v34';
             mediaElement.style.display = 'none';
             mediaElement.muted = true;
             mediaElement.playsInline = true;
             mediaElement.setAttribute('playsinline', '');
             mediaElement.srcObject = stream;
             document.body.appendChild(mediaElement);
-            
+
             mediaElement.play().then(() => {
-                console.log('[Vivo Tab Keeper v3] Video keep-alive started');
                 registerMediaSession('video');
                 drawFrame();
             }).catch(err => {
-                console.warn('[Vivo Tab Keeper v3] Video failed, fallback audio');
                 startAudioKeepAlive();
             });
-            
+
         } catch (err) {
-            console.error('[Vivo Tab Keeper v3] Video error:', err);
+            console.error('[Vivo Tab Keeper] Video error:', err);
         }
     }
 
@@ -478,18 +454,18 @@
     function startAudioKeepAlive() {
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
+
             oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
-            
+
             oscillator.frequency.setValueAtTime(20, audioContext.currentTime);
             oscillator.type = 'sine';
             gainNode.gain.setValueAtTime(0.001, audioContext.currentTime);
-            
+
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
             oscillator.start();
-            
+
             if (audioContext.state === 'suspended') {
                 audioContext.resume().then(() => {
                     registerMediaSession('audio');
@@ -497,11 +473,9 @@
             } else {
                 registerMediaSession('audio');
             }
-            
-            console.log('[Vivo Tab Keeper v3] Audio keep-alive started');
-            
+
         } catch (err) {
-            console.error('[Vivo Tab Keeper v3] Audio error:', err);
+            console.error('[Vivo Tab Keeper] Audio error:', err);
         }
     }
 
@@ -522,64 +496,60 @@
     // ============ MEDIA SESSION ============
     function registerMediaSession(type) {
         if (!('mediaSession' in navigator)) return;
-        
+
         try {
             navigator.mediaSession.metadata = new MediaMetadata({
-                title: '🛡️ Vivo Tab Keeper v3 (' + type + ')',
-                artist: 'All-Site Protection',
-                album: 'Active on all websites',
+                title: '🛡️ Vivo Tab Keeper (' + type + ')',
+                artist: 'Protecting tabs',
+                album: 'All-Site Protection',
                 artwork: [
-                    { 
+                    {
                         src: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj50ZXh0IHk9Ii45ZW0iIGZvbnQtc2l6ZT0iOTAiPrKdjwvdGV4dD48L3N2Zz4=',
-                        sizes: '96x96', 
-                        type: 'image/svg+xml' 
+                        sizes: '96x96',
+                        type: 'image/svg+xml'
                     }
                 ]
             });
-            
+
             navigator.mediaSession.playbackState = "playing";
-            
+
             navigator.mediaSession.setActionHandler('pause', () => {
                 navigator.mediaSession.playbackState = "playing";
             });
-            
+
             navigator.mediaSession.setActionHandler('play', () => {
                 navigator.mediaSession.playbackState = "playing";
             });
-            
+
             mediaSessionActive = true;
-            console.log('[Vivo Tab Keeper v3] MediaSession registered (' + type + ')');
-            
+
         } catch (err) {
-            console.error('[Vivo Tab Keeper v3] MediaSession error:', err);
+            console.error('[Vivo Tab Keeper] MediaSession error:', err);
         }
     }
 
-    // ============ COMPUTATION INTERVAL (REPLACEMENT FOR WORKER) ============
+    // ============ COMPUTATION INTERVAL ============
     function startComputationInterval() {
-        // Ini adalah alternatif untuk Web Worker yang diblokir CSP
         const compInterval = setInterval(() => {
             if (!isActive) return;
-            
-            // Light computation untuk menjaga CPU aktif
+
             let result = 0;
             for (let i = 0; i < 100; i++) {
                 result += Math.sqrt(i);
             }
-            
-        }, 5000); // Setiap 5 detik
-        
+
+        }, 5000);
+
         intervals.push(compInterval);
-        console.log('[Vivo Tab Keeper v3] Computation interval started (Worker alternative)');
     }
 
     // ============ FETCH KEEP ALIVE ============
     function startFetchKeepAlive() {
         if (!CONFIG.useFetchKeepAlive) return;
-        
+
         const fetchInterval = setInterval(() => {
             if (!isActive) return;
-            
+
             fetch(CONFIG.keepAliveUrl, {
                 method: 'GET',
                 mode: 'no-cors',
@@ -587,21 +557,19 @@
                 keepalive: true
             }).catch(() => {});
         }, CONFIG.activityInterval);
-        
+
         intervals.push(fetchInterval);
-        console.log('[Vivo Tab Keeper v3] Fetch keep-alive started');
     }
 
     // ============ ACTIVITY INTERVALS ============
     function startActivityIntervals() {
         const activityInterval = setInterval(() => {
             if (!isActive) return;
-            
+
             try {
-                sessionStorage.setItem('vivo_tab_keeper_heartbeat_v3', Date.now().toString());
+                sessionStorage.setItem('vivo_tab_keeper_heartbeat_v34', Date.now().toString());
             } catch (e) {}
-            
-            // DOM manipulation ringan
+
             const tempDiv = document.createElement('div');
             tempDiv.style.display = 'none';
             tempDiv.setAttribute('data-timestamp', String(Date.now()));
@@ -609,17 +577,10 @@
                 document.body.appendChild(tempDiv);
                 document.body.removeChild(tempDiv);
             }
-            
+
         }, CONFIG.activityInterval);
-        
+
         intervals.push(activityInterval);
-        
-        const logInterval = setInterval(() => {
-            if (!isActive) return;
-            console.log('[Vivo Tab Keeper v3] 💚 Still protecting... | Mode:', CONFIG.mode);
-        }, 60000);
-        
-        intervals.push(logInterval);
     }
 
     function clearIntervals() {
@@ -637,12 +598,12 @@
             }
             mediaElement = null;
         }
-        
-        const canvas = document.getElementById('vtk-canvas-v3');
+
+        const canvas = document.getElementById('vtk-canvas-v34');
         if (canvas && canvas.parentNode) {
             canvas.parentNode.removeChild(canvas);
         }
-        
+
         if (mediaSessionActive && 'mediaSession' in navigator) {
             try {
                 navigator.mediaSession.playbackState = "none";
@@ -654,7 +615,6 @@
     // ============ EVENT HANDLERS ============
     function handleVisibilityChange() {
         if (document.hidden && isActive) {
-            console.log('[Vivo Tab Keeper v3] Page hidden - boosting protection');
             if (audioContext && audioContext.state === 'suspended') {
                 audioContext.resume();
             }
@@ -668,7 +628,7 @@
     }
 
     function handlePageHide(event) {
-        console.log('[Vivo Tab Keeper v3] Page hide');
+        // Silent
     }
 
     // ============ CLEANUP ============
