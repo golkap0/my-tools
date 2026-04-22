@@ -1,0 +1,9 @@
+{
+  "name": "tes",
+  "description": "🇮🇩 Indonesian Movie Repository for CloudStream",
+  "iconUrl": "https://i.ibb.co/q3YkdNRv/asm0d3usx.png",
+  "manifestVersion": 1,
+  "pluginLists": [
+    "https://raw.githubusercontent.com/HatsuneMikuUwU/cloudstream-extensions-uwu/refs/heads/builds/plugins.json"
+  ]
+}
